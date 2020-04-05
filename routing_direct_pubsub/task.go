@@ -29,24 +29,23 @@ func main() {
 	failOnError(err, "Fail to open a channel")
 	defer ch.Close()
 
-	q, err := ch.QueueDeclare(
-		"task_queue",
-		true,
-		false,
-		false,
-		false,
-		nil)
-	failOnError(err, "Failed to declare a queue")
-
-	ch.QueueBind(q.Name, "def", "abc", false, nil)
-	failOnError(err, "Failed to bind queue")
+	err = ch.ExchangeDeclare(
+		"routing_direct_pubsub", // name
+		"direct",                // type
+		true,                    // durable
+		false,                   // auto-deleted
+		false,                   // internal
+		false,                   // no-wait
+		nil,                     // arguments
+	)
+	failOnError(err, "Failed to declare an exchange")
 
 	body := bodyFrom(os.Args)
 	num, _ := strconv.Atoi(os.Args[1])
 	for i := 0; i < num; i++ {
 		err = ch.Publish(
-			"abc",
-			"def",
+			"routing_direct_pubsub",
+			"key_direct"+strconv.Itoa(i%2+1),
 			false,
 			false,
 			amqp.Publishing{

@@ -23,8 +23,19 @@ func main() {
 	failOnError(err, "Fail to open a channel")
 	defer ch.Close()
 
+	err = ch.ExchangeDeclare(
+		"routing_direct_pubsub", // name
+		"direct",                // type
+		true,                    // durable
+		false,                   // auto-deleted
+		false,                   // internal
+		false,                   // no-wait
+		nil,                     // arguments
+	)
+	failOnError(err, "Failed to declare an exchange")
+
 	q, err := ch.QueueDeclare(
-		"task_queue",
+		"", // 此处不指定队列名字
 		true,
 		false,
 		false,
@@ -32,6 +43,9 @@ func main() {
 		nil,
 	)
 	failOnError(err, "Failed to declare a queue")
+
+	err = ch.QueueBind(q.Name, "key_direct1", "routing_direct_pubsub", false, nil)
+	failOnError(err, "Failed to bind queue")
 
 	msgs, err := ch.Consume(
 		q.Name,
@@ -43,9 +57,6 @@ func main() {
 		nil,
 	)
 	failOnError(err, "Failed to register a consumer")
-
-	err = ch.QueueBind(q.Name, "def", "abc", false, nil)
-	failOnError(err, "Failed to bind queue")
 
 	forever := make(chan bool)
 
